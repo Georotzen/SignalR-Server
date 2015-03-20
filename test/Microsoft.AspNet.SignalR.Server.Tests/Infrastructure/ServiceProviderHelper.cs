@@ -1,13 +1,7 @@
 ﻿using System;
-using System.Threading.Tasks;
-using Microsoft.AspNet.Builder;
-using Microsoft.AspNet.FeatureModel;
 using Microsoft.AspNet.Hosting;
-using Microsoft.AspNet.Hosting.Server;
 using Microsoft.AspNet.Hosting.Startup;
-using Microsoft.Framework.ConfigurationModel;
 using Microsoft.Framework.DependencyInjection;
-using Microsoft.Framework.Runtime.Infrastructure;
 
 namespace Microsoft.AspNet.SignalR.Tests
 {
@@ -23,48 +17,12 @@ namespace Microsoft.AspNet.SignalR.Tests
 
         public static IServiceProvider CreateServiceProvider(Action<IServiceCollection> configure)
         {
-            var context = new HostingContext
-            {
-                ServerFactory = new ServerFactory(),
-                StartupMethods = new StartupMethods(
-                    _ => { }, 
-                    services =>
-                    {
-                        services.AddSignalR();
-                        configure(services);
-                        return services.BuildServiceProvider();
-                    })
-            };
-
-            var engine = new HostingEngine().Start(context);
-            return context.ApplicationServices;
-        }
-
-        private class ServerFactory : IServerFactory
-        {
-            public IServerInformation Initialize(IConfiguration configuration)
-            {
-                return null;
-            }
-
-            public IDisposable Start(IServerInformation serverInformation, Func<IFeatureCollection, Task> application)
-            {
-                return new StartInstance(application);
-            }
-
-            private class StartInstance : IDisposable
-            {
-                private readonly Func<IFeatureCollection, Task> _application;
-
-                public StartInstance(Func<IFeatureCollection, Task> application)
-                {
-                    _application = application;
-                }
-
-                public void Dispose()
-                {
-                }
-            }
+            var context = new HostingContext();
+            // REVIEW: currently two ways to muck with configureServices (Startup or context.Services)
+            context.StartupMethods = new StartupMethods(_ => { }, configureServices: null);
+            context.Services.AddSignalR();
+            configure(context.Services);
+            return HostingEngine.CreateApplicationServices(context);
         }
     }
 }
